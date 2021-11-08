@@ -1,9 +1,9 @@
 import { createGraph } from "./graph";
-import { EdgeBlueprint, isoVertexID } from "./types";
+import { EdgeBlueprint, vertexIDIso } from "./types";
 
 describe("Graphs", () => {
   it("Graph construction", () => {
-    const vertices = [isoVertexID.wrap(3), isoVertexID.wrap(4)];
+    const vertices = [vertexIDIso.wrap(3), vertexIDIso.wrap(4)];
 
     const edges: Array<EdgeBlueprint<1>> = [
       {

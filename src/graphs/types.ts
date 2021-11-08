@@ -14,7 +14,7 @@ type _TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
 
 export interface VertexID
   extends Newtype<{ readonly VertexID: unique symbol }, number> {}
-export const isoVertexID = iso<VertexID>();
+export const vertexIDIso = iso<VertexID>();
 
 export interface EdgeID
   extends Newtype<{ readonly EdgeID: unique symbol }, number> {}

@@ -3,11 +3,12 @@ import {
   EdgeBlueprint,
   incrementEdgeID,
   isoEdgeID,
+  Tuple,
   Vertex,
   VertexID,
 } from "./types";
 
-interface Graph<WeightDimensions extends number> {
+export interface Graph<WeightDimensions extends number> {
   vertices: Array<Vertex>;
   edges: Array<Edge<WeightDimensions>>;
 }
@@ -18,9 +19,6 @@ export const createGraph = <WeightDimensions extends number>(
 ): Graph<WeightDimensions> => {
   // consistency check
   for (const edgeBlueprint of edges) {
-    console.log(
-      `vertex1: ${edgeBlueprint.vertex1}, vertex2: ${edgeBlueprint.vertex2}`
-    );
     if (!vertices.includes(edgeBlueprint.vertex1)) {
       throw new Error(
         `Vertex ${edgeBlueprint.vertex1} is not in the provided array of vertices`
@@ -50,4 +48,34 @@ export const createGraph = <WeightDimensions extends number>(
   }
 
   return graph;
+};
+
+export interface Connection<WeightDimensions extends number> {
+  otherVertex: VertexID;
+  weight: Tuple<number, WeightDimensions>;
+}
+
+export const findNeighbors = <WeightDimensions extends number>(
+  graph: Graph<WeightDimensions>,
+  vertexID: VertexID
+): Set<Connection<WeightDimensions>> => {
+  if (!graph.vertices.some((vertex) => vertex.id === vertexID)) {
+    throw new Error(`Vertex ${vertexID} not found in graph`);
+  }
+
+  const neighbors = new Set<Connection<WeightDimensions>>();
+  for (const edge of graph.edges) {
+    if (edge.vertex1 === vertexID) {
+      neighbors.add({
+        otherVertex: edge.vertex2,
+        weight: edge.weight,
+      });
+    } else if (edge.vertex2 === vertexID) {
+      neighbors.add({
+        otherVertex: edge.vertex1,
+        weight: edge.weight,
+      });
+    }
+  }
+  return neighbors;
 };
