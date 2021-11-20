@@ -101,3 +101,40 @@ export const textbookDijkstra = (
 
   return path;
 };
+
+// taken from https://www.baeldung.com/cs/simple-paths-between-two-vertices#2-implementation
+export const findAllPaths = <WeightDimensions extends number>(
+  graph: Graph<WeightDimensions>,
+  startVertex: VertexID,
+  endVertex: VertexID
+): Set<Path> => {
+  const allPaths = new Set<Path>();
+  const visitedVertices = new Set<VertexID>();
+  let currentPath: Path = [];
+
+  const depthFirstTraversal = (startVertex: VertexID, endVertex: VertexID) => {
+    if (visitedVertices.has(startVertex)) {
+      return;
+    }
+
+    visitedVertices.add(startVertex);
+    currentPath.push(startVertex);
+    if (startVertex === endVertex) {
+      allPaths.add(currentPath.slice()); // store currentPath's current value, while allowing future modifications to currentPath
+      visitedVertices.delete(startVertex);
+      currentPath = currentPath.slice(0, -1);
+      return;
+    }
+
+    const connections = findNeighbors(graph, startVertex);
+    for (const connection of connections) {
+      depthFirstTraversal(connection.otherVertex, endVertex);
+    }
+
+    currentPath = currentPath.slice(0, -1);
+    visitedVertices.delete(startVertex);
+  };
+
+  depthFirstTraversal(startVertex, endVertex);
+  return allPaths;
+};

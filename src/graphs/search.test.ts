@@ -1,8 +1,79 @@
 import { createGraph } from "./graph";
-import { textbookDijkstra } from "./search";
+import { findAllPaths, textbookDijkstra } from "./search";
 import { vertexIDIso, Vertex, EdgeBlueprint } from "./types";
 
 describe("Graph path search algorithms", () => {
+  describe("Finding all paths", () => {
+    it("Two possible paths", () => {
+      // Arrange
+      const startVertex: Vertex = {
+        id: vertexIDIso.wrap(1),
+      };
+
+      const intermediateVertex1: Vertex = {
+        id: vertexIDIso.wrap(2),
+      };
+
+      const intermediateVertex2: Vertex = {
+        id: vertexIDIso.wrap(3),
+      };
+
+      const endVertex: Vertex = {
+        id: vertexIDIso.wrap(4),
+      };
+
+      const edge12: EdgeBlueprint<0> = {
+        vertex1: startVertex.id,
+        vertex2: intermediateVertex1.id,
+        weight: [],
+      };
+
+      const edge13: EdgeBlueprint<0> = {
+        vertex1: startVertex.id,
+        vertex2: intermediateVertex2.id,
+        weight: [],
+      };
+
+      const edge24: EdgeBlueprint<0> = {
+        vertex1: intermediateVertex1.id,
+        vertex2: endVertex.id,
+        weight: [],
+      };
+
+      const edge34: EdgeBlueprint<0> = {
+        vertex1: intermediateVertex2.id,
+        vertex2: endVertex.id,
+        weight: [],
+      };
+
+      const graph = createGraph(
+        [
+          startVertex.id,
+          intermediateVertex1.id,
+          intermediateVertex2.id,
+          endVertex.id,
+        ],
+        [edge12, edge13, edge24, edge34]
+      );
+
+      // Act
+      const allPaths = findAllPaths(graph, startVertex.id, endVertex.id);
+
+      // Assert
+      expect(allPaths.size).toBe(2);
+      expect(Array.from(allPaths)).toContainEqual([
+        startVertex.id,
+        intermediateVertex1.id,
+        endVertex.id,
+      ]);
+      expect(Array.from(allPaths)).toContainEqual([
+        startVertex.id,
+        intermediateVertex2.id,
+        endVertex.id,
+      ]);
+    });
+  });
+
   describe("Textbook Dijkstra's algorithm (1-dimension weights)", () => {
     it("Trivial example - two vertices, one edge", () => {
       // Arrange
