@@ -1,6 +1,6 @@
 import { filter } from "fp-ts/lib/Set";
 import { Connection, findNeighbors, getEdge, Graph } from "./graph";
-import { Edge, VertexID } from "./types";
+import { Edge, Tuple, VertexID } from "./types";
 
 export type Path<WeightDimensions extends number> = Array<
   Edge<WeightDimensions>
@@ -22,6 +22,24 @@ const convertVertexListToPath = <WeightDimensions extends number>(
   }
 
   return [edge].concat(convertVertexListToPath(graph, vertices.slice(1)));
+};
+
+export const getTotalWeightOfPath = <WeightDimensions extends number>(
+  path: Path<WeightDimensions>
+): Tuple<number, WeightDimensions> => {
+  // TODO - not really an error, but without being able to reference an edge, we can't create a WeightDimensions-length tuple of all 0's at runtime
+  if (path.length === 0) {
+    throw new Error("Empty path");
+  }
+
+  let totalWeight = path[0].weight;
+  for (let i = 1; i < path.length; i++) {
+    for (let dimension = 0; dimension < path[i].weight.length; dimension++) {
+      totalWeight[dimension] += path[i].weight[dimension];
+    }
+  }
+
+  return totalWeight;
 };
 
 // TODO - if used in generalized Dijkstra, add WeightDimensions type parameter, make totalDistance a Tuple<number, WeightDimensions>

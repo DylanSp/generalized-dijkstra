@@ -1,38 +1,45 @@
 import * as fc from "fast-check";
 import { createGraph, Graph } from "./graph";
-import { findAllPaths, textbookDijkstra } from "./search";
+import { findAllPaths, getTotalWeightOfPath, textbookDijkstra } from "./search";
 import { vertexIDIso, Vertex, VertexID, EdgeBlueprint } from "./types";
 
-/*
-class ArbitraryGraph<WeightDimensions extends number> extends NextArbitrary<Graph<WeightDimensions>> {
-  generate(mrng: fc.Random, biasFactor: number | undefined): fc.NextValue<Graph<WeightDimensions>> {
-    throw new Error("Method not implemented.");
+const arbitraryVertexes: fc.Arbitrary<Array<VertexID>> = fc.set(
+  fc.nat().map((num) => vertexIDIso.wrap(num)),
+  {
+    minLength: 2,
   }
-  canShrinkWithoutContext(value: unknown): value is Graph<WeightDimensions> {
-    throw new Error("Method not implemented.");
-  }
-  shrink(value: Graph<WeightDimensions>, context: unknown): fc.Stream<fc.NextValue<Graph<WeightDimensions>>> {
-    throw new Error("Method not implemented.");
-  }
-}
-
-class ArbitraryGraph1D extends ArbitraryGraph<1> {
-};
-*/
-
-const arbitraryVertexes: fc.Arbitrary<Array<VertexID>> = fc.array(
-  fc.nat().map((num) => vertexIDIso.wrap(num))
 );
 const arbitraryBooleanStream = fc.infiniteStream(fc.boolean());
-const arbitraryWeightStream = fc.infiniteStream(fc.nat());
+const arbitraryWeightStream = fc.infiniteStream(
+  fc.nat({
+    max: 999,
+  })
+);
 
 const arbitraryGraph1D: fc.Arbitrary<Graph<1>> = fc
   .tuple(arbitraryVertexes, arbitraryBooleanStream, arbitraryWeightStream)
   .map(([vertexList, boolStream, weightStream]) => {
     const edgeBlueprints: Array<EdgeBlueprint<1>> = [];
 
+    // subtract 1 to avoid messing with Dijkstra's using MAX_SAFE_INTEGER to represent lack of connection
+    /*
+    const maxWeight = Math.floor(
+      (Number.MAX_SAFE_INTEGER - 1) / vertexList.length
+    );
+    */
+    const maxWeight = 1000;
+
     for (let i = 0; i < vertexList.length; i++) {
       for (let j = i + 1; j < vertexList.length; j++) {
+        // add max-weight path between all pairs of vertices, to ensure graph is fully connected
+        edgeBlueprints.push({
+          vertex1: vertexList[i],
+          vertex2: vertexList[j],
+          weight: [maxWeight],
+        });
+
+        // possibly add a random lower-weight path between the two vertices; these are the
+
         // casts should always succeed because boolStream, weightStream are infinite
         if ((boolStream.next() as IteratorYieldResult<boolean>).value) {
           edgeBlueprints.push({
@@ -221,7 +228,7 @@ describe("Graph path search algorithms", () => {
       );
     });
 
-    it.skip("Nontrivial example with multiple possible paths", () => {
+    it("Nontrivial example with multiple possible paths", () => {
       // Arrange
       const startVertex: Vertex = {
         id: vertexIDIso.wrap(1),
@@ -288,7 +295,29 @@ describe("Graph path search algorithms", () => {
       );
     });
 
-    // it("Property-based test; out of all paths");
+    it("Property-based test; out of all paths, the returned path has the lowest weight", () => {
+      fc.assert(
+        fc.property(arbitraryGraph1D, (graph) => {
+          console.log("Checking property");
+
+          const startVertex = graph.vertices[0];
+          const endVertex = graph.vertices[1];
+          const allPaths = findAllPaths(graph, startVertex.id, endVertex.id);
+          const lowestWeight = Array.from(allPaths)
+            .map((path) => getTotalWeightOfPath(path))
+            .sort(([weight1], [weight2]) => weight1 - weight2)[0];
+
+          const shortestPath = textbookDijkstra(
+            graph,
+            startVertex.id,
+            endVertex.id
+          );
+          const shortestPathWeight = getTotalWeightOfPath(shortestPath);
+
+          expect(lowestWeight[0]).toEqual(shortestPathWeight[0]);
+        })
+      );
+    });
   });
 });
 
