@@ -1,8 +1,28 @@
 import { filter } from "fp-ts/lib/Set";
-import { Connection, findNeighbors, Graph } from "./graph";
-import { VertexID } from "./types";
+import { Connection, findNeighbors, getEdge, Graph } from "./graph";
+import { Edge, VertexID } from "./types";
 
-export type Path = Array<VertexID>;
+export type Path<WeightDimensions extends number> = Array<
+  Edge<WeightDimensions>
+>;
+
+const convertVertexListToPath = <WeightDimensions extends number>(
+  graph: Graph<WeightDimensions>,
+  vertices: Array<VertexID>
+): Path<WeightDimensions> => {
+  if (vertices.length === 0 || vertices.length === 1) {
+    return [];
+  }
+
+  const edge = getEdge(graph, vertices[0], vertices[1]);
+  if (edge === undefined) {
+    throw new Error(
+      `Vertices ${vertices[0]} and ${vertices[1]} are not connected!`
+    );
+  }
+
+  return [edge].concat(convertVertexListToPath(graph, vertices.slice(1)));
+};
 
 // TODO - if used in generalized Dijkstra, add WeightDimensions type parameter, make totalDistance a Tuple<number, WeightDimensions>
 interface HopFromSource {
@@ -16,7 +36,7 @@ export const textbookDijkstra = (
   graph: Graph<1>,
   startVertex: VertexID,
   endVertex: VertexID
-): Path => {
+): Path<1> => {
   if (graph.vertices.length === 0) {
     throw new Error("No vertices exist");
   }
@@ -82,11 +102,11 @@ export const textbookDijkstra = (
     }
   }
 
-  const path: Path = [];
+  const path: Path<1> = [];
   let reverseTraversalCurrentNode = endVertex;
   while (reverseTraversalCurrentNode !== startVertex) {
-    path.unshift(reverseTraversalCurrentNode);
     const previousNode = tentativeDistances.get(reverseTraversalCurrentNode)!;
+
     if (
       previousNode.previousVertex === undefined &&
       reverseTraversalCurrentNode !== startVertex
@@ -95,9 +115,15 @@ export const textbookDijkstra = (
         `No path from starting vertex ${startVertex} to ending vertex ${endVertex}`
       );
     }
+    const pathBackwards: Edge<1> = getEdge(
+      graph,
+      previousNode.previousVertex!,
+      reverseTraversalCurrentNode
+    )!;
+    path.unshift(pathBackwards);
+
     reverseTraversalCurrentNode = previousNode.previousVertex!;
   }
-  path.unshift(startVertex);
 
   return path;
 };
@@ -107,10 +133,10 @@ export const findAllPaths = <WeightDimensions extends number>(
   graph: Graph<WeightDimensions>,
   startVertex: VertexID,
   endVertex: VertexID
-): Set<Path> => {
-  const allPaths = new Set<Path>();
+): Set<Path<WeightDimensions>> => {
+  const allPaths = new Set<Path<WeightDimensions>>();
   const visitedVertices = new Set<VertexID>();
-  let currentPath: Path = [];
+  let currentVertexPath: Array<VertexID> = [];
 
   const depthFirstTraversal = (startVertex: VertexID, endVertex: VertexID) => {
     if (visitedVertices.has(startVertex)) {
@@ -118,11 +144,11 @@ export const findAllPaths = <WeightDimensions extends number>(
     }
 
     visitedVertices.add(startVertex);
-    currentPath.push(startVertex);
+    currentVertexPath.push(startVertex);
     if (startVertex === endVertex) {
-      allPaths.add(currentPath.slice()); // store currentPath's current value, while allowing future modifications to currentPath
+      allPaths.add(convertVertexListToPath(graph, currentVertexPath));
       visitedVertices.delete(startVertex);
-      currentPath = currentPath.slice(0, -1);
+      currentVertexPath = currentVertexPath.slice(0, -1);
       return;
     }
 
@@ -131,7 +157,7 @@ export const findAllPaths = <WeightDimensions extends number>(
       depthFirstTraversal(connection.otherVertex, endVertex);
     }
 
-    currentPath = currentPath.slice(0, -1);
+    currentVertexPath = currentVertexPath.slice(0, -1);
     visitedVertices.delete(startVertex);
   };
 

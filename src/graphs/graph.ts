@@ -50,6 +50,19 @@ export const createGraph = <WeightDimensions extends number>(
   return graph;
 };
 
+export const getEdge = <WeightDimensions extends number>(
+  graph: Graph<WeightDimensions>,
+  vertex1: VertexID,
+  vertex2: VertexID
+): Edge<WeightDimensions> | undefined => {
+  return graph.edges.find((edge) => {
+    return (
+      (edge.vertex1 === vertex1 && edge.vertex2 === vertex2) ||
+      (edge.vertex1 === vertex2 && edge.vertex2 === vertex1)
+    );
+  });
+};
+
 export interface Connection<WeightDimensions extends number> {
   otherVertex: VertexID;
   weight: Tuple<number, WeightDimensions>;
